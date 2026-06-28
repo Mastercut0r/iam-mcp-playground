@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/IamMock.Api/IamMock.Api.csproj" />
+    <Project Path="src/IamMock.Contracts/IamMock.Contracts.csproj" />
+    <Project Path="src/IamMock.McpClient/IamMock.McpClient.csproj" />
+    <Project Path="src/IamMock.McpServer/IamMock.McpServer.csproj" />
+  </Folder>
+</Solution>

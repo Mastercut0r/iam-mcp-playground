@@ -1,0 +1,19 @@
+@host = http://localhost:5080
+
+### Health
+GET {{host}}/health
+
+### List tenants
+GET {{host}}/tenants
+
+### List roles
+GET {{host}}/roles
+
+### List all users
+GET {{host}}/users
+
+### Search users by name/email
+GET {{host}}/users?search=a
+
+### List licenses
+GET {{host}}/licenses
