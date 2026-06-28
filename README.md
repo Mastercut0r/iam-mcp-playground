@@ -1,59 +1,59 @@
 # IAM Mock API + MCP Server
 
-Eine **.NET 10** Mock-API für ein einfaches IAM-System (Tenants, User, Rollen, Lizenzen)
-mit Fake-Daten, plus einem lokalen **MCP-Server** und einem **Konsolen-Client** zum Testen.
+A **.NET 10** mock API for a simple IAM system (tenants, users, roles, licenses)
+with fake data, plus a local **MCP server** and a **console client** for testing.
 
-> Authentifizierung ist bewusst weggelassen — Annahme: Hosting in einem privaten VNet.
+> Authentication is intentionally omitted — assumption: hosted inside a private VNet.
 
-## Architektur
+## Architecture
 
 ```
 ┌──────────────────┐   stdio (MCP)   ┌──────────────────┐   HTTP/JSON   ┌──────────────────┐
 │  IamMock.        │ ──────────────► │  IamMock.        │ ────────────► │  IamMock.Api     │
 │  McpClient       │ ◄────────────── │  McpServer       │ ◄──────────── │  (REST, Bogus)   │
-│  (Konsole)       │                 │  (9 Tools)       │               │  :5080           │
+│  (console)       │                 │  (16 tools)      │               │  :5080           │
 └──────────────────┘                 └──────────────────┘               └──────────────────┘
 ```
 
-Der MCP-Server ist eine dünne Schicht **über** der REST-API (kein eingebettetes Datenmodell).
-Das entspricht dem realistischen Szenario "interne API im VNet, MCP-Server greift darauf zu".
+The MCP server is a thin layer **on top of** the REST API (no embedded data model).
+This mirrors the realistic scenario of an "internal API in a VNet, accessed by an MCP server".
 
-## Projektstruktur
+## Project structure
 
 ```
 playground-mcp/
-├── IamMock.slnx                     # Solution (neues XML-Format von .NET 10)
-├── .mcp.json                        # MCP-Server-Eintrag für Claude Code
-├── Directory.Build.props            # gemeinsame Build-Settings (net10.0, nullable, …)
+├── IamMock.slnx                     # Solution (new .NET 10 XML format)
+├── .mcp.json                        # MCP server entry for Claude Code
+├── Directory.Build.props            # shared build settings (net10.0, nullable, …)
 └── src/
-    ├── IamMock.Contracts/           # geteilte Domain-Modelle (DTOs)
+    ├── IamMock.Contracts/           # shared domain models (DTOs)
     │   └── Models/                  # Tenant, User, Role, License
     ├── IamMock.Api/                 # ASP.NET Core Minimal API
-    │   ├── Data/MockDataStore.cs    # deterministische Fake-Daten via Bogus
-    │   ├── Endpoints/               # je Ressource eine Endpoint-Klasse
-    │   └── IamMock.Api.http         # Beispiel-Requests
-    ├── IamMock.McpServer/           # MCP-Server (stdio)
-    │   ├── IamApiClient.cs          # typed HttpClient über die REST-API
-    │   └── Tools/                   # MCP-Tools (Tenant/User/Role/License)
-    └── IamMock.McpClient/           # Konsolen-Client (Demo + interaktiv)
+    │   ├── Data/MockDataStore.cs    # deterministic fake data via Bogus
+    │   ├── Endpoints/               # one endpoint class per resource
+    │   └── IamMock.Api.http         # example requests
+    ├── IamMock.McpServer/           # MCP server (stdio)
+    │   ├── IamApiClient.cs          # typed HttpClient over the REST API
+    │   └── Tools/                   # MCP tools (Tenant/User/Role/License)
+    └── IamMock.McpClient/           # console client (demo + interactive)
 ```
 
-## Datenmodell
+## Data model
 
-Bewusst flach gehalten:
+Deliberately flat:
 
-| Entität     | Felder (Auszug)                                                        |
+| Entity      | Fields (excerpt)                                                       |
 |-------------|------------------------------------------------------------------------|
 | **Tenant**  | `Id, Name, Domain, IsActive, CreatedAt`                                |
 | **User**    | `Id, TenantId, Email, DisplayName, Department, IsActive, RoleIds[], LicenseIds[]` |
 | **Role**    | `Id, Name, Description, Permissions[]` (global)                         |
 | **License** | `Id, TenantId, SkuName, TotalSeats, AssignedSeats, AvailableSeats, ExpiresAt` |
 
-Die Daten werden mit festem Seed generiert → bei jedem Start identisch
-(3 Tenants: Contoso/Fabrikam/Globex, 6 Rollen, ~8–20 User pro Tenant).
-`AssignedSeats` wird aus den tatsächlichen User-Zuweisungen abgeleitet.
+Data is generated with a fixed seed → identical on every start
+(3 tenants: Contoso/Fabrikam/Globex, 6 roles, ~8–20 users per tenant).
+`AssignedSeats` is derived from the actual user assignments.
 
-## Voraussetzungen
+## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 
@@ -61,30 +61,30 @@ Die Daten werden mit festem Seed generiert → bei jedem Start identisch
 dotnet build IamMock.slnx
 ```
 
-## Schnellstart
+## Quick start
 
-### 1. REST-API starten
+### 1. Start the REST API
 
 ```bash
 dotnet run --project src/IamMock.Api
 ```
 
-- API:        http://localhost:5080
-- API-Doku:   http://localhost:5080/scalar  (interaktive OpenAPI-UI)
-- OpenAPI:    http://localhost:5080/openapi/v1.json
+- API:       http://localhost:5080
+- API docs:  http://localhost:5080/scalar  (interactive OpenAPI UI)
+- OpenAPI:   http://localhost:5080/openapi/v1.json
 
-> Port überschreiben: `ASPNETCORE_URLS=http://localhost:6000 dotnet run --project src/IamMock.Api`
+> Override the port: `ASPNETCORE_URLS=http://localhost:6000 dotnet run --project src/IamMock.Api`
 
-### 2. MCP-Client starten (in einem zweiten Terminal)
+### 2. Start the MCP client (in a second terminal)
 
-Der Client startet den MCP-Server selbst als Kindprozess, listet alle Tools auf,
-fährt einen kleinen Demo-Ablauf und geht dann in einen interaktiven Modus.
+The client launches the MCP server itself as a child process, lists all tools,
+runs a small demo flow and then drops into an interactive mode.
 
 ```bash
 dotnet run --project src/IamMock.McpClient
 ```
 
-Interaktiv lassen sich Tools direkt aufrufen:
+Tools can be invoked directly in interactive mode:
 
 ```
 > list_tenants
@@ -93,58 +93,58 @@ Interaktiv lassen sich Tools direkt aufrufen:
 > exit
 ```
 
-## REST-Endpoints
+## REST endpoints
 
-**Lesen**
+**Read**
 
-| Methode & Pfad                  | Beschreibung                                  |
+| Method & path                   | Description                                   |
 |---------------------------------|-----------------------------------------------|
-| `GET /health`                   | Liveness-Probe                                |
-| `GET /tenants`                  | Alle Tenants                                  |
-| `GET /tenants/{id}`             | Einzelner Tenant                              |
-| `GET /tenants/{id}/users`       | User eines Tenants                            |
-| `GET /tenants/{id}/licenses`    | Lizenzen eines Tenants                        |
-| `GET /users?tenantId=&search=`  | User, optional gefiltert                      |
-| `GET /users/{id}`               | Einzelner User                                |
-| `GET /roles`                    | Alle Rollen                                   |
-| `GET /roles/{id}`               | Einzelne Rolle                                |
-| `GET /licenses?tenantId=`       | Lizenzen, optional gefiltert                  |
-| `GET /licenses/{id}`            | Einzelne Lizenz                               |
+| `GET /health`                   | Liveness probe                                |
+| `GET /tenants`                  | All tenants                                   |
+| `GET /tenants/{id}`             | A single tenant                               |
+| `GET /tenants/{id}/users`       | Users of a tenant                             |
+| `GET /tenants/{id}/licenses`    | Licenses of a tenant                          |
+| `GET /users?tenantId=&search=`  | Users, optionally filtered                    |
+| `GET /users/{id}`               | A single user                                 |
+| `GET /roles`                    | All roles                                     |
+| `GET /roles/{id}`               | A single role                                 |
+| `GET /licenses?tenantId=`       | Licenses, optionally filtered                 |
+| `GET /licenses/{id}`            | A single license                              |
 
-**Schreiben** (in-memory, bei Neustart zurückgesetzt)
+**Write** (in-memory, reset on restart)
 
-| Methode & Pfad                              | Beschreibung                          |
+| Method & path                               | Description                           |
 |---------------------------------------------|---------------------------------------|
-| `POST /users`                               | User anlegen (201)                    |
-| `PATCH /users/{id}`                         | User teil-aktualisieren               |
-| `DELETE /users/{id}`                        | User löschen (204)                    |
-| `POST /users/{id}/roles/{roleId}`           | Rolle zuweisen                        |
-| `DELETE /users/{id}/roles/{roleId}`         | Rolle entziehen                       |
-| `POST /users/{id}/licenses/{licenseId}`     | Lizenz-Seat zuweisen (prüft Seats)    |
-| `DELETE /users/{id}/licenses/{licenseId}`   | Lizenz-Seat entziehen                 |
+| `POST /users`                               | Create a user (201)                   |
+| `PATCH /users/{id}`                         | Partially update a user               |
+| `DELETE /users/{id}`                        | Delete a user (204)                   |
+| `POST /users/{id}/roles/{roleId}`           | Assign a role                         |
+| `DELETE /users/{id}/roles/{roleId}`         | Remove a role                         |
+| `POST /users/{id}/licenses/{licenseId}`     | Assign a license seat (checks seats)  |
+| `DELETE /users/{id}/licenses/{licenseId}`   | Revoke a license seat                 |
 
-Fehler werden als JSON `{ "error": "..." }` mit passendem Status gemeldet:
-`404` (nicht gefunden), `409` (Konflikt, z. B. doppelte Email / keine freien Seats),
-`400` (Validierung).
+Errors are reported as JSON `{ "error": "..." }` with an appropriate status:
+`404` (not found), `409` (conflict, e.g. duplicate email / no free seats),
+`400` (validation).
 
-## MCP-Tools
+## MCP tools
 
-**Lesen:** `list_tenants`, `get_tenant`, `list_users`, `get_user`, `list_roles`,
+**Read:** `list_tenants`, `get_tenant`, `list_users`, `get_user`, `list_roles`,
 `get_role`, `list_licenses`, `get_license`, `license_summary`
 
-**Schreiben:** `create_user`, `update_user`, `delete_user`, `assign_role`,
+**Write:** `create_user`, `update_user`, `delete_user`, `assign_role`,
 `unassign_role`, `assign_license`, `revoke_license`
 
-Tool-Fehler (z. B. „keine freien Seats") werden als `McpException` mit
-aussagekräftiger Meldung an den Client weitergereicht.
+Tool errors (e.g. "no free seats") are propagated to the client as an
+`McpException` with a meaningful message.
 
-## Einbindung in Claude Code / Claude Desktop
+## Integration with Claude Code / Claude Desktop
 
-Die Datei [`.mcp.json`](.mcp.json) registriert den Server projektweit für **Claude Code**
-(Pfad relativ zum Projekt-Root, daher vorher `dotnet build` ausführen).
+The [`.mcp.json`](.mcp.json) file registers the server project-wide for **Claude Code**
+(path relative to the project root, so run `dotnet build` first).
 
-Für **Claude Desktop** den folgenden Block in die `claude_desktop_config.json` einfügen
-(absolute Pfade verwenden):
+For **Claude Desktop**, add the following block to `claude_desktop_config.json`
+(use absolute paths):
 
 ```json
 {
@@ -158,21 +158,21 @@ Für **Claude Desktop** den folgenden Block in die `claude_desktop_config.json` 
 }
 ```
 
-> Die REST-API (`dotnet run --project src/IamMock.Api`) muss laufen, damit die Tools
-> Daten liefern.
+> The REST API (`dotnet run --project src/IamMock.Api`) must be running for the
+> tools to return data.
 
-## Konfiguration
+## Configuration
 
-| Einstellung           | Wo                                   | Default                  |
+| Setting               | Where                                | Default                  |
 |-----------------------|--------------------------------------|--------------------------|
-| API-Port              | `ASPNETCORE_URLS`                    | `http://localhost:5080`  |
-| API-URL des Servers   | `IamApi__BaseUrl` (env / appsettings)| `http://localhost:5080`  |
-| Server-DLL des Clients| `IAM_MCP_SERVER_DLL` (env)           | aus Build-Output ermittelt |
-| API-URL des Clients   | `IAM_API_BASEURL` (env)              | `http://localhost:5080`  |
+| API port              | `ASPNETCORE_URLS`                    | `http://localhost:5080`  |
+| Server's API URL      | `IamApi__BaseUrl` (env / appsettings)| `http://localhost:5080`  |
+| Client's server DLL   | `IAM_MCP_SERVER_DLL` (env)           | resolved from build output |
+| Client's API URL      | `IAM_API_BASEURL` (env)              | `http://localhost:5080`  |
 
-## Hinweise
+## Notes
 
-- **Keine Authentifizierung** — nur für lokale Tests / private Netze gedacht.
-- Seed-Daten sind **deterministisch** (fester Seed). Schreib-Operationen werden
-  **in-memory** angewandt und gehen bei einem Neustart der API verloren.
-- Das MCP-SDK (`ModelContextProtocol`) ist aktuell als Preview eingebunden.
+- **No authentication** — intended only for local testing / private networks.
+- Seed data is **deterministic** (fixed seed). Write operations are applied
+  **in-memory** and are lost when the API restarts.
+- The MCP SDK (`ModelContextProtocol`) is currently referenced as a preview.
