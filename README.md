@@ -3,7 +3,7 @@
 A **.NET 10** mock API for a simple IAM system (tenants, users, roles, licenses)
 with fake data, plus a local **MCP server** and a **console client** for testing.
 
-> Authentication is intentionally omitted — assumption: hosted inside a private VNet.
+> API Authentication is intentionally omitted — for the sake of simplicity and the fake data.
 
 ## Architecture
 
@@ -16,7 +16,6 @@ with fake data, plus a local **MCP server** and a **console client** for testing
 ```
 
 The MCP server is a thin layer **on top of** the REST API (no embedded data model).
-This mirrors the realistic scenario of an "internal API in a VNet, accessed by an MCP server".
 
 ## Project structure
 
